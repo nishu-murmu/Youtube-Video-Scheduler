@@ -24,13 +24,21 @@ export const HoverElement: React.FC = () => {
       if (hoverIcon) hoverIcon.style.opacity = opacity;
     };
 
+    // YouTube replaced the #media-container-link id with a class in its redesign
+    const MEDIA_CONTAINER_SELECTOR =
+      "#media-container-link, .ytdVideoPreviewMediaContainerLink";
+
     const handleVideoMutation = (list: MutationRecord[]) => {
       const youtubeVideos = document.querySelectorAll("ytd-rich-item-renderer");
-      if (list[0]?.target && (list[0].target as HTMLAnchorElement)?.href) {
+      const targetHref = (list[0]?.target as HTMLAnchorElement)?.href;
+      if (targetHref) {
+        const targetId = getYoutubeVideoId(targetHref);
         youtubeVideos.forEach((element) => {
-          const anchor = element.querySelector("a") as HTMLAnchorElement | null;
+          const anchor = element.querySelector(
+            "a[href*='/watch']"
+          ) as HTMLAnchorElement | null;
           const isTarget =
-            anchor?.href === (list[0].target as HTMLAnchorElement).href;
+            !!targetId && getYoutubeVideoId(anchor?.href || "") === targetId;
           goneOutside = isTarget;
           handleHoverIcons(element, isTarget ? "1" : "0");
         });
@@ -39,7 +47,7 @@ export const HoverElement: React.FC = () => {
 
     setTimeout(() => {
       addHoverIcons();
-      const mediaContainer = document.querySelector("#media-container-link");
+      const mediaContainer = document.querySelector(MEDIA_CONTAINER_SELECTOR);
       if (mediaContainer) {
         createObserver(
           mediaContainer,
@@ -59,7 +67,7 @@ export const HoverElement: React.FC = () => {
           },
           () => {
             const mediaContainer = document.querySelector(
-              "#media-container-link"
+              MEDIA_CONTAINER_SELECTOR
             );
             if (mediaContainer) {
               createObserver(

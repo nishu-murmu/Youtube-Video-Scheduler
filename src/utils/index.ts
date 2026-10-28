@@ -173,7 +173,8 @@ const injectHoverIcon = (
     (element as Element).setAttribute("element-injected", "true");
 
     const videoId = getYoutubeVideoId(
-      (element.querySelector("a") as HTMLAnchorElement)?.href || ""
+      (element.querySelector("a[href*='/watch']") as HTMLAnchorElement)
+        ?.href || ""
     );
     const videoTitle =
       (element.querySelector("h3") as HTMLElement)?.innerText || "";
@@ -213,25 +214,53 @@ export const addSingleVideoHoverIcons = () =>
 export const sleep = (ms: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, ms));
 
+// Built with DOM APIs because YouTube enforces Trusted Types, which blocks innerHTML
+const createPlusIcon = () => {
+  const SVG_NS = "http://www.w3.org/2000/svg";
+  const bg = document.createElement("div");
+  bg.className = "neomorphic-icon-bg";
+
+  const svg = document.createElementNS(SVG_NS, "svg");
+  const attrs: Record<string, string> = {
+    id: "hover-icon",
+    width: "24",
+    height: "24",
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    "stroke-width": "2",
+    "stroke-linecap": "round",
+    "stroke-linejoin": "round",
+  };
+  Object.entries(attrs).forEach(([key, value]) => svg.setAttribute(key, value));
+
+  const circle = document.createElementNS(SVG_NS, "circle");
+  circle.setAttribute("cx", "12");
+  circle.setAttribute("cy", "12");
+  circle.setAttribute("r", "10");
+  svg.appendChild(circle);
+
+  ["M8 12h8", "M12 8v8"].forEach((d) => {
+    const path = document.createElementNS(SVG_NS, "path");
+    path.setAttribute("d", d);
+    svg.appendChild(path);
+  });
+
+  bg.appendChild(svg);
+  return bg;
+};
+
 export const createHoverIcon = () => {
   const div = document.createElement("div");
   div.className = "hover-icon-container neomorphic-icon";
-  div.innerHTML = `
-    <div class="neomorphic-icon-bg">
-      <svg id="hover-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
-           fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="10"/>
-        <path d="M8 12h8"/>
-        <path d="M12 8v8"/>
-      </svg>
-    </div>`;
+  div.appendChild(createPlusIcon());
   return div;
 };
 
 export const createSingleVideoHoverIcon = () => {
   const div = document.createElement("div");
   div.className = "hover-icon-container-single neomorphic-icon";
-  div.innerHTML = createHoverIcon().innerHTML;
+  div.appendChild(createPlusIcon());
   return div;
 };
 

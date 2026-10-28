@@ -46,8 +46,10 @@
   transition: all 0.3s ease;
 }
 
-ytd-rich-item-renderer #thumbnail:hover .hover-icon-container {
-  opacity: 1;
+ytd-rich-item-renderer #thumbnail:hover .hover-icon-container,
+ytd-rich-item-renderer:has(yt-thumbnail-view-model:hover) .hover-icon-container,
+ytd-rich-item-renderer .hover-icon-container:hover {
+  opacity: 1 !important;
 }
 
 .neomorphic-icon-bg:hover {
