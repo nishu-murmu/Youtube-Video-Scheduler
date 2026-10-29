@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Check, Loader2, Minus, Plus, TriangleAlert } from "lucide-react";
 
 export function ShortsLimitSettings({ onClose }: { onClose?: () => void }) {
   const DEFAULT_LIMIT = 10;
@@ -40,7 +41,8 @@ export function ShortsLimitSettings({ onClose }: { onClose?: () => void }) {
     browser.storage.local
       .set({ shortsLimit: sanitizedLimit, shortsWarningText: sanitizedWarning })
       .then(async () => {
-        setSavedMessage("Contents Saved!");
+        setLimit(sanitizedLimit);
+        setSavedMessage("Saved");
         await sleep(2000);
         setSavedMessage("");
         if (onClose) onClose();
@@ -52,65 +54,123 @@ export function ShortsLimitSettings({ onClose }: { onClose?: () => void }) {
       });
   }
 
+  const isSaving = savedMessage === "Saving...";
+  const changeLimit = (delta: number) =>
+    setLimit((value) => Math.max(1, (Math.floor(value) || 0) + delta));
+
   return (
-    <div className="fixed inset-0 z-[2147483647] flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
-      <div className="relative mx-4 w-full max-w-md rounded-xl bg-white p-6 shadow-2xl">
-        <h2 className="mb-4 text-xl font-semibold text-gray-900">
-          Shorts Limit Settings
-        </h2>
-        <div className="mb-4">
-          <label className="mb-2 block text-sm font-medium text-gray-700">
-            Maximum Shorts per session
-          </label>
-          <input
-            type="number"
-            min={1}
-            step={1}
-            value={loading ? "" : limit}
-            onChange={(e) => setLimit(Number(e.target.value) || 0)}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-blue-500"
-            placeholder="Enter a positive number"
-            disabled={loading}
-          />
-          <p className="mt-2 text-xs text-gray-500">
-            Default is 10. Increase or decrease as you prefer.
-          </p>
+    <div className="ui-px flex min-h-full flex-col bg-white text-zinc-900">
+      <header className="flex items-center gap-3 border-b border-zinc-100 px-5 py-4">
+        <img src="/icon/icon-48.png" alt="" className="h-8 w-8 rounded-lg" />
+        <div className="min-w-0">
+          <h1 className="text-sm font-semibold">YouTube Video Scheduler</h1>
+          <p className="text-xs text-zinc-500">Shorts limit settings</p>
         </div>
-        <div className="mb-4">
-          <label className="mb-2 block text-sm font-medium text-gray-700">
-            Warning Text (shown when limit is reached)
+      </header>
+
+      <main className="flex flex-1 flex-col gap-5 px-5 py-5">
+        <section>
+          <label
+            htmlFor="shorts-limit"
+            className="block text-sm font-medium text-zinc-900"
+          >
+            Shorts per session
           </label>
+          <p className="mt-0.5 text-xs text-zinc-500">
+            You'll see a reminder after this many Shorts. Default is{" "}
+            {DEFAULT_LIMIT}.
+          </p>
+          <div className="mt-3 flex h-10 items-stretch overflow-hidden rounded-lg ring-1 ring-zinc-200 focus-within:ring-2 focus-within:ring-zinc-900/20">
+            <button
+              type="button"
+              aria-label="Decrease limit"
+              onClick={() => changeLimit(-1)}
+              disabled={loading || limit <= 1}
+              className="flex w-10 cursor-pointer items-center justify-center text-zinc-600 transition-colors hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <Minus className="h-4 w-4" />
+            </button>
+            <input
+              id="shorts-limit"
+              type="number"
+              min={1}
+              step={1}
+              value={loading ? "" : limit}
+              onChange={(e) => setLimit(Number(e.target.value) || 0)}
+              className="min-w-0 flex-1 border-x border-zinc-200 text-center text-sm font-semibold tabular-nums outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+              disabled={loading}
+            />
+            <button
+              type="button"
+              aria-label="Increase limit"
+              onClick={() => changeLimit(1)}
+              disabled={loading}
+              className="flex w-10 cursor-pointer items-center justify-center text-zinc-600 transition-colors hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <Plus className="h-4 w-4" />
+            </button>
+          </div>
+        </section>
+
+        <section className="flex flex-1 flex-col">
+          <div className="flex items-baseline justify-between">
+            <label
+              htmlFor="shorts-warning"
+              className="block text-sm font-medium text-zinc-900"
+            >
+              Reminder message
+            </label>
+            <span className="text-[11px] text-zinc-400 tabular-nums">
+              {loading ? 0 : warningText.length} chars
+            </span>
+          </div>
+          <p className="mt-0.5 text-xs text-zinc-500">
+            Shown when you reach the limit.
+          </p>
           <textarea
+            id="shorts-warning"
             value={loading ? "" : warningText}
             onChange={(e) => setWarningText(e.target.value)}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-blue-500"
-            placeholder="Enter warning message"
-            rows={4}
+            className="mt-3 min-h-[120px] w-full flex-1 resize-none rounded-lg px-3 py-2.5 text-sm leading-relaxed text-zinc-800 ring-1 ring-zinc-200 outline-none placeholder:text-zinc-400 focus:ring-2 focus:ring-zinc-900/20"
+            placeholder="Enter a reminder message"
             disabled={loading}
           />
-          <p className="mt-2 text-xs text-gray-500">
-            This message will be shown when the Shorts limit is reached.
-          </p>
-          <p className="mt-2 text-xs text-green-500 italic">{savedMessage}</p>
-        </div>
-        <div className="flex items-center justify-end gap-2">
+        </section>
+      </main>
+
+      <footer className="flex items-center gap-3 border-t border-zinc-100 bg-zinc-50/80 px-5 py-4">
+        <p
+          aria-live="polite"
+          className={`flex flex-1 items-center gap-1.5 text-xs font-medium ${
+            savedMessage === "Failed to save"
+              ? "text-red-600"
+              : "text-emerald-600"
+          }`}
+        >
+          {savedMessage === "Saved" && <Check className="h-3.5 w-3.5" />}
+          {savedMessage === "Failed to save" && (
+            <TriangleAlert className="h-3.5 w-3.5" />
+          )}
+          {!isSaving && savedMessage}
+        </p>
+        {onClose && (
           <button
             onClick={onClose}
-            className="rounded-lg cursor-pointer px-4 py-2 text-gray-700 hover:bg-gray-100"
+            className="h-9 cursor-pointer rounded-lg px-4 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-200/60"
             disabled={loading}
           >
             Cancel
           </button>
-          <button
-            onClick={handleSave}
-            className="rounded-lg cursor-pointer bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700"
-            disabled={loading}
-          >
-            Save
-          </button>
-        </div>
-      </div>
+        )}
+        <button
+          onClick={handleSave}
+          className="flex h-9 cursor-pointer items-center gap-2 rounded-lg bg-zinc-900 px-5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
+          disabled={loading || isSaving}
+        >
+          {isSaving && <Loader2 className="h-4 w-4 animate-spin" />}
+          {isSaving ? "Saving" : "Save"}
+        </button>
+      </footer>
     </div>
   );
 }

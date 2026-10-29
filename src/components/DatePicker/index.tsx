@@ -1,12 +1,222 @@
-import { RefObject, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import {
+  addDays,
+  addHours,
+  format,
+  formatDistanceToNowStrict,
+  nextSaturday,
+  setHours,
+  startOfHour,
+} from "date-fns";
+import { AlertCircle, CalendarClock } from "lucide-react";
+
+const ITEM_HEIGHT = 36;
+const VISIBLE_OFFSET = 3;
+const WHEEL_THRESHOLD = 40;
+const MONTH_NAMES = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
+
+const pad = (value: number) => value.toString().padStart(2, "0");
+
+type WheelColumnProps = {
+  label: string;
+  values: number[];
+  current: number;
+  onSelect: (value: number) => void;
+  format?: (value: number) => string;
+};
+
+// A single scrollable column. Supports mouse wheel / trackpad, drag, click
+// on a neighbouring item, and arrow keys. Selection stops at either end.
+const WheelColumn = ({
+  label,
+  values,
+  current,
+  onSelect,
+  format: formatValue = pad,
+}: WheelColumnProps) => {
+  const ref = useRef<HTMLDivElement>(null);
+  const latest = useRef({ values, current, onSelect });
+  latest.current = { values, current, onSelect };
+  const wheelDelta = useRef(0);
+  const drag = useRef<{ startY: number; startIndex: number; moved: boolean }>(
+    null
+  );
+
+  const currentIndex = values.indexOf(current);
+
+  const selectIndex = (index: number) => {
+    const { values, current, onSelect } = latest.current;
+    if (!values.length) return;
+    const clamped = Math.min(Math.max(index, 0), values.length - 1);
+    if (values[clamped] !== current) onSelect(values[clamped]);
+  };
+
+  const stepBy = (steps: number) => {
+    const { values, current } = latest.current;
+    const index = values.indexOf(current);
+    selectIndex((index === -1 ? 0 : index) + steps);
+  };
+
+  // Keep the selection valid when the available values shrink
+  useEffect(() => {
+    if (currentIndex === -1 && values.length > 0) onSelect(values[0]);
+  }, [currentIndex, values.length]);
+
+  // Native listener so preventDefault works (React wheel listeners are passive)
+  useEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const delta = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
+
+      // A mouse notch is one step; trackpad deltas are accumulated
+      if (Math.abs(delta) >= 100) {
+        wheelDelta.current = 0;
+        stepBy(Math.sign(delta));
+        return;
+      }
+      if (Math.sign(delta) !== Math.sign(wheelDelta.current)) {
+        wheelDelta.current = 0;
+      }
+      wheelDelta.current += delta;
+      const steps = Math.trunc(wheelDelta.current / WHEEL_THRESHOLD);
+      if (steps !== 0) {
+        wheelDelta.current -= steps * WHEEL_THRESHOLD;
+        stepBy(steps);
+      }
+    };
+
+    element.addEventListener("wheel", handleWheel, { passive: false });
+    return () => element.removeEventListener("wheel", handleWheel);
+  }, []);
+
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.currentTarget.setPointerCapture(e.pointerId);
+    drag.current = {
+      startY: e.clientY,
+      startIndex: Math.max(currentIndex, 0),
+      moved: false,
+    };
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!drag.current) return;
+    const dy = drag.current.startY - e.clientY;
+    if (Math.abs(dy) > 4) drag.current.moved = true;
+    if (drag.current.moved) {
+      selectIndex(drag.current.startIndex + Math.round(dy / ITEM_HEIGHT));
+    }
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (drag.current && !drag.current.moved) {
+      // Treat as a click on whichever item is under the pointer
+      const rect = e.currentTarget.getBoundingClientRect();
+      const offset = Math.round(
+        (e.clientY - (rect.top + rect.height / 2)) / ITEM_HEIGHT
+      );
+      if (offset !== 0) stepBy(offset);
+    }
+    drag.current = null;
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const steps: Record<string, number> = {
+      ArrowUp: -1,
+      ArrowDown: 1,
+      PageUp: -5,
+      PageDown: 5,
+    };
+    // Stop propagation so YouTube's own shortcuts (seek, volume) don't fire
+    if (e.key in steps || e.key === "Home" || e.key === "End") {
+      e.stopPropagation();
+    }
+    if (e.key in steps) {
+      e.preventDefault();
+      stepBy(steps[e.key]);
+    } else if (e.key === "Home") {
+      e.preventDefault();
+      selectIndex(0);
+    } else if (e.key === "End") {
+      e.preventDefault();
+      selectIndex(values.length - 1);
+    }
+  };
+
+  return (
+    <div
+      ref={ref}
+      role="spinbutton"
+      aria-label={label}
+      aria-valuenow={current}
+      aria-valuetext={currentIndex === -1 ? undefined : formatValue(current)}
+      tabIndex={0}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={() => (drag.current = null)}
+      onKeyDown={handleKeyDown}
+      className="relative z-10 h-full min-w-0 flex-1 cursor-grab touch-none select-none rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20 active:cursor-grabbing"
+    >
+      {values.length === 0 ? (
+        <div className="flex h-full items-center justify-center text-xs text-zinc-400">
+          —
+        </div>
+      ) : (
+        values.map((value, index) => {
+          const offset = index - currentIndex;
+          if (Math.abs(offset) > VISIBLE_OFFSET) return null;
+
+          const distance = Math.abs(offset);
+          return (
+            <div
+              key={value}
+              className={`pointer-events-none absolute inset-x-0 top-1/2 flex items-center justify-center tabular-nums transition-[transform,opacity,color] duration-150 ease-out ${
+                offset === 0
+                  ? "text-[17px] font-semibold text-zinc-900"
+                  : "text-[16px] font-medium text-zinc-400"
+              }`}
+              style={{
+                height: ITEM_HEIGHT,
+                marginTop: -ITEM_HEIGHT / 2,
+                opacity: distance === VISIBLE_OFFSET ? 0 : 1 - distance * 0.25,
+                transform: `translateY(${offset * ITEM_HEIGHT}px) scale(${
+                  1 - distance * 0.06
+                })`,
+              }}
+            >
+              {formatValue(value)}
+            </div>
+          );
+        })
+      )}
+    </div>
+  );
+};
 
 export const NeoMorphicDateTimePicker = ({
   selectedDate,
   onChange,
 }: NeoMorphicDateTimePickerProps) => {
   const currentDateTime = new Date();
-  const [error, setError] = useState<string | null>(null); // Added error state
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null); // Added timeout ref
+  const [error, setError] = useState<string | null>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const parseDate = (dateInput: Date | string | null | undefined): Date => {
     if (!dateInput) return new Date();
@@ -29,25 +239,17 @@ export const NeoMorphicDateTimePicker = ({
   const [hour, setHour] = useState(initialDate.getHours());
   const [minute, setMinute] = useState(initialDate.getMinutes());
 
-  const [isScrolling, setIsScrolling] = useState({
-    date: false,
-    month: false,
-    year: false,
-    hour: false,
-    minute: false,
-  });
-
-  const dateRef = useRef<HTMLDivElement>(null as any);
-  const monthRef = useRef<HTMLDivElement>(null as any);
-  const yearRef = useRef<HTMLDivElement>(null as any);
-  const hourRef = useRef<HTMLDivElement>(null as any);
-  const minuteRef = useRef<HTMLDivElement>(null as any);
+  const applyDate = (value: Date) => {
+    setYear(value.getFullYear());
+    setMonth(value.getMonth() + 1);
+    setDate(value.getDate());
+    setHour(value.getHours());
+    setMinute(value.getMinutes());
+  };
 
   useEffect(() => {
     return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current); // Clear timeout on unmount
-      }
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
   }, []);
 
@@ -56,322 +258,212 @@ export const NeoMorphicDateTimePicker = ({
       const parsedDate = parseDate(selectedDate);
       // Only update if the parsed date is different from current internal state
       const currentInternalDate = new Date(year, month - 1, date, hour, minute);
-
       if (parsedDate.getTime() !== currentInternalDate.getTime()) {
-        setDate(parsedDate.getDate());
-        setMonth(parsedDate.getMonth() + 1);
-        setYear(parsedDate.getFullYear());
-        setHour(parsedDate.getHours());
-        setMinute(parsedDate.getMinutes());
+        applyDate(parsedDate);
       }
     }
   }, [selectedDate]);
 
-  const getDaysInMonth = (month, year) => {
+  const getDaysInMonth = (month: number, year: number) => {
     return new Date(year, month, 0).getDate();
   };
+
+  const isCurrentYear = year === currentDateTime.getFullYear();
+  const isCurrentMonth =
+    isCurrentYear && month === currentDateTime.getMonth() + 1;
+  const isToday = isCurrentMonth && date === currentDateTime.getDate();
+  const isCurrentHour = isToday && hour === currentDateTime.getHours();
 
   const days = Array.from(
     { length: getDaysInMonth(month, year) },
     (_, i) => i + 1
-  ).filter((d) => {
-    if (
-      year === currentDateTime.getFullYear() &&
-      month === currentDateTime.getMonth() + 1
-    ) {
-      return d >= currentDateTime.getDate();
-    }
-    return true;
-  });
+  ).filter((d) => !isCurrentMonth || d >= currentDateTime.getDate());
 
-  const months = Array.from({ length: 12 }, (_, i) => i + 1).filter((m) => {
-    if (year === currentDateTime.getFullYear()) {
-      return m >= currentDateTime.getMonth() + 1;
-    }
-    return true;
-  });
+  const months = Array.from({ length: 12 }, (_, i) => i + 1).filter(
+    (m) => !isCurrentYear || m >= currentDateTime.getMonth() + 1
+  );
 
   const years = Array.from(
     { length: 21 },
     (_, i) => currentDateTime.getFullYear() + i
   );
 
-  const hours = Array.from({ length: 24 }, (_, i) => i).filter((h) => {
-    if (
-      year === currentDateTime.getFullYear() &&
-      month === currentDateTime.getMonth() + 1 &&
-      date === currentDateTime.getDate()
-    ) {
-      return h >= currentDateTime.getHours();
-    }
-    return true;
-  });
+  const hours = Array.from({ length: 24 }, (_, i) => i).filter(
+    (h) => !isToday || h >= currentDateTime.getHours()
+  );
 
-  const minutes = Array.from({ length: 60 }, (_, i) => i).filter((m) => {
-    if (
-      year === currentDateTime.getFullYear() &&
-      month === currentDateTime.getMonth() + 1 &&
-      date === currentDateTime.getDate() &&
-      hour === currentDateTime.getHours()
-    ) {
-      return m >= currentDateTime.getMinutes();
-    }
-    return true;
-  });
+  const minutes = Array.from({ length: 60 }, (_, i) => i).filter(
+    (m) => !isCurrentHour || m >= currentDateTime.getMinutes()
+  );
 
   useEffect(() => {
     const newTime = new Date(year, month - 1, date, hour, minute);
-    let adjustedBecausePast = false;
-    if (newTime.getTime() < currentDateTime.getTime()) {
-      if (year < currentDateTime.getFullYear()) {
-        setYear(currentDateTime.getFullYear());
-      }
-      if (
-        year === currentDateTime.getFullYear() &&
-        month < currentDateTime.getMonth() + 1
-      ) {
-        setMonth(currentDateTime.getMonth() + 1);
-      }
-      if (
-        year === currentDateTime.getFullYear() &&
-        month === currentDateTime.getMonth() + 1 &&
-        date < currentDateTime.getDate()
-      ) {
-        setDate(currentDateTime.getDate());
-      }
-      if (
-        year === currentDateTime.getFullYear() &&
-        month === currentDateTime.getMonth() + 1 &&
-        date === currentDateTime.getDate() &&
-        hour < currentDateTime.getHours()
-      ) {
-        setHour(currentDateTime.getHours());
-      }
-      if (
-        year === currentDateTime.getFullYear() &&
-        month === currentDateTime.getMonth() + 1 &&
-        date === currentDateTime.getDate() &&
-        hour === currentDateTime.getHours() &&
-        minute < currentDateTime.getMinutes()
-      ) {
-        setMinute(currentDateTime.getMinutes());
-      }
-    }
-
-    // Check if date is in the past
-    if (newTime.getTime() < currentDateTime.getTime()) {
-      adjustedBecausePast = true;
-      // Set all parts to current date/time
-      setYear(currentDateTime.getFullYear());
-      setMonth(currentDateTime.getMonth() + 1);
-      setDate(currentDateTime.getDate());
-      setHour(currentDateTime.getHours());
-      setMinute(currentDateTime.getMinutes());
-    }
     const maxDays = getDaysInMonth(month, year);
     if (date > maxDays) {
       setDate(maxDays);
     }
-    // Show error if we adjusted because of past date
-    if (adjustedBecausePast) {
-      setError(
-        "The selected time is in the past. Adjusted to the current time."
-      );
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
+
+    // Compare at minute precision so "now" itself isn't flagged as the past
+    const startOfCurrentMinute = new Date(currentDateTime);
+    startOfCurrentMinute.setSeconds(0, 0);
+    if (newTime.getTime() < startOfCurrentMinute.getTime()) {
+      applyDate(currentDateTime);
+      setError("That time has already passed, so it was moved to now.");
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
       timeoutRef.current = setTimeout(() => setError(null), 3000);
     }
-  }, [year, month, date, hour, minute, onChange, selectedDate]); // Added onChange and selectedDate to dependency array
+  }, [year, month, date, hour, minute, selectedDate]);
 
   useEffect(() => {
     if (onChange) {
       const newDateObj = new Date(year, month - 1, date, hour, minute);
-      // Ensure selectedDate is parsed correctly before comparison
       const currentSelectedDate = selectedDate ? parseDate(selectedDate) : null;
       if (
-        !currentSelectedDate || // if selectedDate was null/undefined initially
+        !currentSelectedDate ||
         newDateObj.getTime() !== currentSelectedDate.getTime()
       ) {
         onChange(newDateObj);
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [date, month, year, hour, minute]); // onChange is excluded as per original logic, but consider adding if it can change
+  }, [date, month, year, hour, minute]);
 
-  const renderWheel = (
-    values: (string | number)[],
-    current: string | number,
-    setter: (value: any) => void, // Consider a more specific type if possible
-    type: keyof typeof isScrolling,
-    ref: React.RefObject<HTMLDivElement>
-  ) => {
-    useEffect(() => {
-      const element = ref.current;
-      if (!element) return;
+  const selected = new Date(year, month - 1, date, hour, minute);
+  const nextHour = startOfHour(addHours(currentDateTime, 2));
+  const presets = [
+    { label: "In 1 hour", value: addHours(currentDateTime, 1) },
+    nextHour.getDate() === currentDateTime.getDate()
+      ? { label: format(nextHour, "'Today' HH:mm"), value: nextHour }
+      : null,
+    {
+      label: "Tomorrow 09:00",
+      value: setHours(startOfHour(addDays(currentDateTime, 1)), 9),
+    },
+    {
+      label: "Saturday 10:00",
+      value: setHours(startOfHour(nextSaturday(currentDateTime)), 10),
+    },
+  ].filter((preset): preset is { label: string; value: Date } => !!preset);
 
-      const handleWheelEvent = (e) => {
-        e.stopPropagation();
-        e.preventDefault();
-        if (values.length === 0) return;
-        const currentIndex = values.indexOf(current);
-        if (currentIndex === -1) {
-          setter(values[0]);
-          return;
-        }
-        setIsScrolling((prev) => ({ ...prev, [type]: true }));
-        const direction = e.deltaY > 0 ? 1 : -1;
-        let newIndex = (currentIndex + direction) % values.length;
-        if (newIndex < 0) newIndex = values.length - 1;
-        setter(values[newIndex]);
-        setTimeout(() => {
-          setIsScrolling((prev) => ({ ...prev, [type]: false }));
-        }, 50);
-      };
-
-      element.addEventListener("wheel", handleWheelEvent, { passive: false });
-
-      return () => {
-        element.removeEventListener("wheel", handleWheelEvent);
-      };
-    }, [ref, values, current, type]);
-
-    if (values.length === 0) {
-      return (
-        <div
-          className="relative h-32 overflow-hidden rounded-lg bg-gray-100 border border-gray-200 flex items-center justify-center"
-          ref={ref}
-        >
-          <p className="text-gray-400 font-medium">No options</p>
-        </div>
-      );
-    }
-    const currentIndex = values.indexOf(current);
-
-    useEffect(() => {
-      if (currentIndex === -1 && values.length > 0) {
-        setter(values[0]);
-      }
-    }, [values, current]);
-
-    return (
-      <div
-        className="relative h-32 overflow-hidden rounded-lg bg-gray-100 border border-gray-200"
-        ref={ref}
-      >
-        <div className="absolute top-1/2 left-0 right-0 h-10 -mt-5 pointer-events-none z-10">
-          <div className="h-full mx-1 bg-blue-100 bg-opacity-40 rounded-md border border-blue-200"></div>
-        </div>
-        <div
-          className={`flex flex-col items-center justify-center h-full transition-transform duration-300 px-2 ${
-            isScrolling[type] ? "transform translate-y-1" : ""
-          }`}
-        >
-          {values.map((value, index) => {
-            const relativePos =
-              (index - currentIndex + values.length) % values.length;
-            const wrappedPos =
-              relativePos > values.length / 2
-                ? relativePos - values.length
-                : relativePos;
-
-            if (wrappedPos >= -3 && wrappedPos <= 3) {
-              const isSelected = wrappedPos === 0;
-              const opacity = 1 - Math.abs(wrappedPos) * 0.2;
-              const scale = 1 - Math.abs(wrappedPos) * 0.08;
-              const translateY = wrappedPos * 24; // pixels instead of rem for more precise control
-
-              return (
-                <div
-                  key={value}
-                  className={`absolute py-1 px-3 font-mono text-2xl font-bold cursor-pointer transition-all duration-200
-                    ${isSelected ? "text-blue-600 z-10" : "text-gray-500"}`}
-                  style={{
-                    opacity: opacity,
-                    transform: `scale(${scale}) translateY(${translateY}px)`,
-                    top: "calc(50% - 16px)",
-                  }}
-                  onClick={() => setter(value)}
-                >
-                  {value.toString().padStart(2, "0")}
-                </div>
-              );
-            }
-            return null;
-          })}
-        </div>
-      </div>
-    );
-  };
+  const relative =
+    selected.getTime() - currentDateTime.getTime() < 60_000
+      ? "right now"
+      : formatDistanceToNowStrict(selected, { addSuffix: true });
 
   return (
-    <div className="bg-gray-200 rounded-xl p-6 w-full">
-      <h3 className="text-xl font-semibold text-gray-700 mb-4 text-center">
-        Select Date & Time
-      </h3>
+    <div className="w-full">
+      <div className="mb-4 flex flex-wrap gap-2">
+        {presets.map(({ label, value }) => {
+          const isActive =
+            Math.abs(value.getTime() - selected.getTime()) < 60_000;
+          return (
+            <button
+              key={label}
+              type="button"
+              onClick={() => applyDate(value)}
+              className={`cursor-pointer rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                isActive
+                  ? "border-zinc-900 bg-zinc-900 text-white"
+                  : "border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300 hover:bg-zinc-50"
+              }`}
+            >
+              {label}
+            </button>
+          );
+        })}
+      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-        <div className="md:col-span-3 bg-gray-50 p-5 rounded-xl border border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-700 mb-3 text-center">
-            Date
-          </h3>
-          <div className="flex gap-3">
-            <div className="w-[25%]">
-              <p className="text-sm font-medium text-gray-500 mb-2 text-center">
-                Day
-              </p>
-              {renderWheel(days, date, setDate, "date", dateRef)}
-            </div>
-            <div className="w-[25%]">
-              <p className="text-sm font-medium text-gray-500 mb-2 text-center">
-                Month
-              </p>
-              {renderWheel(months, month, setMonth, "month", monthRef)}
-            </div>
-            <div className="w-[50%]">
-              <p className="text-sm font-medium text-gray-500 mb-2 text-center">
-                Year
-              </p>
-              {renderWheel(years, year, setYear, "year", yearRef)}
-            </div>
-          </div>
+      <div className="rounded-xl bg-zinc-50 p-2 ring-1 ring-zinc-200/80">
+        <div className="flex px-1 pt-1 pb-2 text-[11px] font-medium tracking-wide text-zinc-500 uppercase">
+          <span className="flex-1 text-center">Day</span>
+          <span className="flex-1 text-center">Month</span>
+          <span className="flex-[1.4] text-center">Year</span>
+          <span className="w-4" />
+          <span className="flex-1 text-center">Hour</span>
+          <span className="w-3" />
+          <span className="flex-1 text-center">Min</span>
         </div>
 
-        <div className="md:col-span-2 bg-gray-50 p-5 rounded-xl border border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-700 mb-3 text-center">
-            Time
-          </h3>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <p className="text-sm font-medium text-gray-500 mb-2 text-center">
-                Hour
-              </p>
-              {renderWheel(hours, hour, setHour, "hour", hourRef)}
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-500 mb-2 text-center">
-                Minute
-              </p>
-              {renderWheel(minutes, minute, setMinute, "minute", minuteRef)}
-            </div>
+        <div
+          className="relative flex px-1"
+          style={{
+            height: ITEM_HEIGHT * 5,
+            maskImage:
+              "linear-gradient(to bottom, transparent, #000 28%, #000 72%, transparent)",
+            WebkitMaskImage:
+              "linear-gradient(to bottom, transparent, #000 28%, #000 72%, transparent)",
+          }}
+        >
+          <div
+            className="pointer-events-none absolute inset-x-0 top-1/2 rounded-lg bg-white shadow-sm ring-1 ring-zinc-200"
+            style={{ height: ITEM_HEIGHT, marginTop: -ITEM_HEIGHT / 2 }}
+          />
+          <div className="flex flex-1">
+            <WheelColumn
+              label="Day"
+              values={days}
+              current={date}
+              onSelect={setDate}
+            />
+          </div>
+          <div className="flex flex-1">
+            <WheelColumn
+              label="Month"
+              values={months}
+              current={month}
+              onSelect={setMonth}
+              format={(m) => MONTH_NAMES[m - 1]}
+            />
+          </div>
+          <div className="flex flex-[1.4]">
+            <WheelColumn
+              label="Year"
+              values={years}
+              current={year}
+              onSelect={setYear}
+              format={String}
+            />
+          </div>
+          <div className="relative z-10 flex w-4 items-center justify-center">
+            <span className="h-6 w-px bg-zinc-200" />
+          </div>
+          <div className="flex flex-1">
+            <WheelColumn
+              label="Hour"
+              values={hours}
+              current={hour}
+              onSelect={setHour}
+            />
+          </div>
+          <div className="relative z-10 flex w-3 items-center justify-center text-[17px] font-semibold text-zinc-400">
+            :
+          </div>
+          <div className="flex flex-1">
+            <WheelColumn
+              label="Minute"
+              values={minutes}
+              current={minute}
+              onSelect={setMinute}
+            />
           </div>
         </div>
       </div>
 
-      <div className="mt-5 p-4 bg-gray-100 rounded-lg border border-gray-200 text-center">
-        <p className="text-lg font-mono">
-          Selected:{" "}
-          <span className="text-blue-600 font-bold">{`${year}-${month
-            .toString()
-            .padStart(2, "0")}-${date.toString().padStart(2, "0")} ${hour
-            .toString()
-            .padStart(2, "0")}:${minute.toString().padStart(2, "0")}`}</span>
-        </p>
+      <div className="mt-4 flex items-center gap-3">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-red-50 text-red-600">
+          <CalendarClock className="h-[18px] w-[18px]" />
+        </div>
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-zinc-900">
+            {format(selected, "EEEE, d MMMM yyyy 'at' HH:mm")}
+          </p>
+          <p className="text-xs text-zinc-500">{relative}</p>
+        </div>
       </div>
 
-      {/* Added error message display */}
       {error && (
-        <div className="mt-3 p-3 bg-red-100 text-red-700 rounded-lg text-center">
+        <div className="mt-3 flex items-center gap-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800 ring-1 ring-amber-200">
+          <AlertCircle className="h-4 w-4 shrink-0" />
           {error}
         </div>
       )}

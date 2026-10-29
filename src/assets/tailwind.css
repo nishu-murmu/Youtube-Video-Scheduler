@@ -146,6 +146,40 @@
   }
 }
 
+/*
+ * YouTube sets `html { font-size: 10px }`, which shrinks every rem-based
+ * Tailwind size inside our shadow roots to 62.5%. Wrapping a UI in `.ui-px`
+ * pins the theme tokens it uses to pixels so it renders at its intended size.
+ */
+.ui-px {
+  --spacing: 4px;
+  --radius: 10px;
+  --radius-xs: 2px;
+  --radius-2xl: 16px;
+  --radius-3xl: 24px;
+  --text-xs: 12px;
+  --text-xs--line-height: 16px;
+  --text-sm: 14px;
+  --text-sm--line-height: 20px;
+  --text-base: 16px;
+  --text-base--line-height: 24px;
+  --text-lg: 18px;
+  --text-lg--line-height: 28px;
+  --text-xl: 20px;
+  --text-xl--line-height: 28px;
+  --text-2xl: 24px;
+  --text-2xl--line-height: 32px;
+  --container-xs: 320px;
+  --container-sm: 384px;
+  --container-md: 448px;
+  --container-lg: 512px;
+  --container-xl: 576px;
+  font-family: Roboto, "Segoe UI", Arial, sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  -webkit-font-smoothing: antialiased;
+}
+
 .radix-dialog-overlay {
   animation: none !important;
 }
