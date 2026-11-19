@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>YouTube Video Scheduler: schedule videos and get reminded</title>
+  <meta name="description" content="A free Chrome and Firefox extension to schedule YouTube videos for later, get a reminder that opens them, see the real runtime at any playback speed, and set a Shorts limit.">
+  <link rel="canonical" href="https://youtube-video-scheduler.gliches.workers.dev/">
+  <meta name="theme-color" content="#18181b">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="YouTube Video Scheduler">
+  <meta property="og:description" content="Save it for later. Actually watch it. Schedule videos, see real runtimes at any speed, and cap your Shorts.">
+  <meta property="og:url" content="https://youtube-video-scheduler.gliches.workers.dev/">
+  <meta property="og:image" content="https://youtube-video-scheduler.gliches.workers.dev/og-image.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/favicon.ico" sizes="32x32">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/page.css">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "YouTube Video Scheduler",
+    "applicationCategory": "BrowserApplication",
+    "operatingSystem": "Chrome, Firefox",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+    "description": "Browser extension to schedule YouTube videos with reminders, show real runtime at any playback speed, and limit Shorts per session.",
+    "url": "https://youtube-video-scheduler.gliches.workers.dev/",
+    "image": "https://youtube-video-scheduler.gliches.workers.dev/og-image.png"
+  }
+  </script>
+</head>
+<body>
+  <header class="nav">
+    <div class="wrap">
+      <a class="brand" href="/" aria-label="YouTube Video Scheduler home"><img src="/favicon.svg" alt=""><span>YouTube Video Scheduler</span></a>
+      <nav class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#faq">FAQ</a>
+        <a href="https://github.com/nishu-murmu/Youtube-Video-Scheduler">GitHub</a>
+      </nav>
+      <a class="btn btn-primary btn-sm" href="https://chromewebstore.google.com/detail/youtube-video-scheduler/miponnamafdenpgjemkknimgjfibicdc">Add to Chrome</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="wrap">
+        <span class="eyebrow">Free browser extension for Chrome &amp; Firefox</span>
+        <h1>Save it for later.<br><em>Actually</em> watch it.</h1>
+        <p class="lead">Schedule any YouTube video with one click and get a reminder that opens it on time. Plus the real runtime at any playback speed, and a Shorts limit you set.</p>
+        <div class="ctas">
+          <a class="btn btn-primary" href="https://chromewebstore.google.com/detail/youtube-video-scheduler/miponnamafdenpgjemkknimgjfibicdc">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+            Add to Chrome
+          </a>
+          <a class="btn btn-ghost" href="https://addons.mozilla.org/en-US/firefox/addon/youtube-video-scheduler/">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+            Add to Firefox
+          </a>
+        </div>
+        <p class="note">No account. No ads. Your schedule stays in your browser.</p>
+        <div class="demo">
+          <video src="/media/demo.mp4" poster="/media/demo-poster.webp" autoplay muted loop playsinline aria-label="Ten-second demo: scheduling a video, the dashboard, real runtime at 2x, and the Shorts limit"></video>
+        </div>
+      </div>
+    </section>
+
+    <section id="features" class="alt">
+      <div class="wrap">
+        <div class="section-head">
+          <h2>Everything you need to <em>watch on purpose</em>.</h2>
+          <p>Small tools that sit right inside YouTube and stay out of your way until you need them.</p>
+        </div>
+        <div class="grid">
+          <div class="card">
+            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12h8M12 8v8"/></svg></div>
+            <h3>Schedule from any thumbnail</h3>
+            <p>Hover a video, click the + button, and pick a time with quick presets like "Tomorrow 09:00".</p>
+          </div>
+          <div class="card">
+            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></div>
+            <h3>A reminder that opens it</h3>
+            <p>When it's time, you get a notification and the video opens in a new tab, ready to play.</p>
+          </div>
+          <div class="card">
+            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>
+            <h3>One dashboard, one shortcut</h3>
+            <p>Press Ctrl+I (⌘I on Mac) to search, reschedule or remove everything you've planned.</p>
+          </div>
+          <div class="card">
+            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg></div>
+            <h3>Missed videos come back</h3>
+            <p>Browser closed at the wrong moment? Missed schedules are collected so you can reschedule them in bulk.</p>
+          </div>
+          <div class="card">
+            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg></div>
+            <h3>Real runtime at any speed</h3>
+            <p>At 2x, a 12:30 video shows as 12:30 (06:15) right in the player, so you know how long it really takes.</p>
+          </div>
+          <div class="card">
+            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/></svg></div>
+            <h3>A Shorts limit you choose</h3>
+            <p>Set how many Shorts you watch per session and write the reminder you'll see when you hit it.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="faq">
+      <div class="wrap faq">
+        <div class="section-head center" style="text-align:center"><h2>Questions</h2></div>
+        <details>
+          <summary>Is it free?</summary>
+          <p>Yes. YouTube Video Scheduler is free, open source under the MIT license, and has no ads or paid tier.</p>
+        </details>
+        <details>
+          <summary>What happens if my browser is closed when a video is due?</summary>
+          <p>The reminder can't fire while the browser is closed. The next time you open YouTube, the video shows up in the missed videos table, where you can reschedule it or add it back.</p>
+        </details>
+        <details>
+          <summary>How do I open my scheduled videos?</summary>
+          <p>Press Ctrl+I (⌘I on Mac) on any YouTube page. You can change the shortcut in your browser's extension shortcut settings.</p>
+        </details>
+        <details>
+          <summary>How is the runtime at playback speed calculated?</summary>
+          <p>The video's length is divided by your playback speed. A 12:30 video at 2x shows 12:30 (06:15).</p>
+        </details>
+        <details>
+          <summary>How does the Shorts limit work?</summary>
+          <p>The extension counts the Shorts you open in a tab. When you reach your limit (10 by default), it shows your reminder message. Change both from the extension's popup.</p>
+        </details>
+        <details>
+          <summary>Which browsers are supported?</summary>
+          <p>Chrome and other Chromium browsers such as Edge and Brave through the Chrome Web Store, and Firefox through Firefox Add-ons.</p>
+        </details>
+      </div>
+    </section>
+
+    <section class="final">
+      <div class="wrap">
+        <img src="/favicon.svg" alt="">
+        <h2>Never lose a video <em>again</em>.</h2>
+        <div class="ctas">
+          <a class="btn btn-primary" href="https://chromewebstore.google.com/detail/youtube-video-scheduler/miponnamafdenpgjemkknimgjfibicdc">Add to Chrome</a>
+          <a class="btn btn-ghost" href="https://addons.mozilla.org/en-US/firefox/addon/youtube-video-scheduler/">Add to Firefox</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <span>© 2026 YouTube Video Scheduler · MIT License</span>
+      <nav>
+        <a href="/privacy">Privacy</a>
+        <a href="https://github.com/nishu-murmu/Youtube-Video-Scheduler">GitHub</a>
+        <a href="https://github.com/nishu-murmu/Youtube-Video-Scheduler/issues">Report an issue</a>
+      </nav>
+      <p class="disclaimer">An independent extension. Not affiliated with, endorsed by, or sponsored by YouTube or Google. YouTube is a trademark of Google LLC.</p>
+    </div>
+  </footer>
+</body>
+</html>

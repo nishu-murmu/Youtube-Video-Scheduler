@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://youtube-video-scheduler.gliches.workers.dev/sitemap.xml

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="96" height="96">
+  <!-- Tile -->
+  <rect width="96" height="96" rx="24" fill="#18181b"/>
+  <!-- Calendar sheet -->
+  <rect x="17" y="23" width="62" height="56" rx="11" fill="#ffffff"/>
+  <!-- Red header band -->
+  <path d="M28 23h40a11 11 0 0 1 11 11v4H17v-4a11 11 0 0 1 11-11z" fill="#dc2626"/>
+  <!-- Binder rings -->
+  <rect x="31" y="15" width="7" height="15" rx="3.5" fill="#ffffff" stroke="#18181b" stroke-width="3"/>
+  <rect x="58" y="15" width="7" height="15" rx="3.5" fill="#ffffff" stroke="#18181b" stroke-width="3"/>
+  <!-- Play -->
+  <path d="M42.5 48.5v19.5c0 1.6 1.7 2.5 3 1.7l15-9.75c1.2-.8 1.2-2.6 0-3.4l-15-9.75c-1.3-.8-3 .1-3 1.7z" fill="#18181b"/>
+</svg>
